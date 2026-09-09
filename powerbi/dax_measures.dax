@@ -1,0 +1,122 @@
+// ==============================================================================
+// F1-OpsCorrelate | Production DAX Measures for Microsoft Power BI
+// Mercedes-AMG PETRONAS Formula One Team (Brackley, UK)
+// ==============================================================================
+
+// 1. Gross Expenditure (Ledger Total)
+GrossExpenditureUSD = 
+SUM(fact_expenses[amount_usd])
+
+GrossExpenditureGBP = 
+SUM(fact_expenses[amount_gbp])
+
+
+// 2. Article 3 Excluded Costs (Issue 24)
+ExcludedCostsUSD = 
+CALCULATE(
+    SUM(fact_expenses[amount_usd]),
+    fact_expenses[is_excluded] = 1
+)
+
+ExcludedCostsGBP = 
+DIVIDE([ExcludedCostsUSD], 1.2691, 0)
+
+
+// 3. TD017 Inventory Valuation Additions (Art. 4.1(f))
+UsedInventoryUSD = 
+CALCULATE(
+    SUM(dim_parts[unit_cost_usd]),
+    dim_parts[inventory_status] = "Used"
+)
+
+RedundantInventoryUSD = 
+CALCULATE(
+    SUM(dim_parts[unit_cost_usd]),
+    dim_parts[inventory_status] = "Redundant"
+)
+
+UnusedInventoryUSD = 
+CALCULATE(
+    SUM(dim_parts[unit_cost_usd]),
+    dim_parts[inventory_status] = "Unused"
+)
+
+
+// 4. Net Relevant Costs (Article 2.2)
+NetRelevantCostsUSD = 
+VAR OpExRelevant = 
+    CALCULATE(
+        SUM(fact_expenses[amount_usd]),
+        fact_expenses[is_excluded] = 0,
+        fact_expenses[is_capex] = 0
+    )
+VAR TD045CarveOutUSD = 
+    SUMX(
+        dim_personnel_td045,
+        dim_personnel_td045[total_remuneration_gbp] * dim_personnel_td045[applied_science_allocation_pct] * 1.2691
+    )
+RETURN
+    OpExRelevant + [UsedInventoryUSD] + [RedundantInventoryUSD] - TD045CarveOutUSD
+
+NetRelevantCostsGBP = 
+DIVIDE([NetRelevantCostsUSD], 1.2691, 0)
+
+
+// 5. Dynamic FIA Statutory Cost Cap Target (Issue 24 Art. 2.3 & 4.1(l))
+StatutoryCostCapUSD = 
+VAR BaseCap = 135000000
+VAR CalendarRaces = 24
+VAR SprintCount = 6
+VAR RaceDeltaAdjustment = IF(CalendarRaces > 21, (CalendarRaces - 21) * 1800000, 0)
+VAR SprintDeduction = SprintCount * 300000
+RETURN
+    BaseCap + RaceDeltaAdjustment - SprintDeduction
+
+StatutoryCostCapGBP = 
+DIVIDE([StatutoryCostCapUSD], 1.2691, 0)
+
+
+// 6. Cost Cap Headroom Remaining
+CostCapHeadroomUSD = 
+[StatutoryCostCapUSD] - [NetRelevantCostsUSD]
+
+CostCapHeadroomGBP = 
+DIVIDE([CostCapHeadroomUSD], 1.2691, 0)
+
+
+// 7. Regulatory Breach Classification (Articles 8.10 & 8.12)
+ComplianceStatus = 
+VAR Headroom = [CostCapHeadroomUSD]
+VAR OverspendPct = DIVIDE(-Headroom, [StatutoryCostCapUSD], 0)
+RETURN
+SWITCH(
+    TRUE(),
+    Headroom >= 0, "COMPLIANT",
+    OverspendPct < 0.05, "MINOR BREACH RISK (< 5%)",
+    "CRITICAL: MATERIAL OVERSPEND BREACH (>= 5%)"
+)
+
+
+// 8. Capital Expenditure Compliance (Appendix 3: Mercedes-Benz Grand Prix Ltd)
+CapExTotalSpentUSD = 
+CALCULATE(
+    SUM(fact_expenses[amount_usd]),
+    fact_expenses[is_capex] = 1
+)
+
+CapExLimitUSD = 42000000  // Appendix 3 for 2025-2028
+
+CapExHeadroomUSD = 
+[CapExLimitUSD] - [CapExTotalSpentUSD]
+
+
+// 9. Test Cell Overall Equipment Effectiveness (OEE) & Readiness
+FacilityReadinessRate = 
+DIVIDE(
+    CALCULATE(COUNTROWS(fact_test_runs), fact_test_runs[actual_status] IN {"Scheduled", "Running", "Completed"}),
+    CALCULATE(COUNTROWS(fact_test_runs)),
+    0
+)
+
+TotalIdleLossGBP = 
+SUM(fact_test_runs[idle_hours]) * 2000 // Average weighted hourly rate across cells

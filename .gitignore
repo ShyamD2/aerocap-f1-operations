@@ -1,0 +1,30 @@
+# Python & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.swp
+*.swo
+
+# Virtual Environments
+venv/
+env/
+.venv/
+
+# Node & Frontend
+node_modules/
+frontend/dist/
+.vite/
+
+# FastF1 Cache & Local DB backups
+data/fastf1_cache/
+*.tmp
+
+# Large Media (GitHub restricts files > 100MB; aerocap_live_demo.mp4 is 185MB)
+*.mp4
+*.mkv
+*.mov
+
+# OS Specific
+.DS_Store
+Thumbs.db
