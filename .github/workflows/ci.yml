@@ -1,4 +1,4 @@
-name: F1-OpsCorrelate Continuous Integration
+name: AEROCAP Continuous Integration
 
 on:
   push:
@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
@@ -25,9 +25,14 @@ jobs:
           pip install -r requirements.txt
 
       - name: Seed Database
+        env:
+          PYTHONPATH: .
         run: |
           python data/seed_data.py
 
       - name: Execute Full FIA Issue 24 & Operations Test Suite
+        env:
+          PYTHONPATH: .
         run: |
           python -m pytest tests/ -v
+

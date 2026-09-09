@@ -27,10 +27,14 @@ def seed_all(db_path=DEFAULT_DB_PATH):
     with get_db_connection(db_path) as conn:
         cursor = conn.cursor()
 
-        # Clean existing rows
+        # Clean existing rows and reset sequence
         for tbl in ["candidate_upgrades", "fact_correlation_runs", "dim_personnel_td045", 
                     "fact_expenses", "fact_test_runs", "dim_parts", "dim_facilities"]:
             cursor.execute(f"DELETE FROM {tbl};")
+        try:
+            cursor.execute("DELETE FROM sqlite_sequence;")
+        except sqlite3.OperationalError:
+            pass
 
         # ----------------------------------------------------------------------
         # 1. SEED: dim_facilities
@@ -90,16 +94,21 @@ def seed_all(db_path=DEFAULT_DB_PATH):
         """, parts_to_insert)
         print(f"[SEED] Inserted {len(parts_to_insert)} parts in BOM.")
 
+        # Map part numbers to auto-generated part_id for foreign keys
+        cursor.execute("SELECT part_id, part_number FROM dim_parts;")
+        part_map = {row[1]: row[0] for row in cursor.fetchall()}
+        default_part_id = next(iter(part_map.values())) if part_map else None
+
         # ----------------------------------------------------------------------
         # 3. SEED: fact_test_runs
         # ----------------------------------------------------------------------
         now = datetime.now()
         test_runs = [
-            ("TEST-PU-901", "DYN-01", "1000km Engine Durability Cycle", (now + timedelta(days=2)).strftime("%Y-%m-%d 08:00"), (now + timedelta(days=4)).strftime("%Y-%m-%d 18:00"), "Scheduled", 1, 0.0),
-            ("TEST-AERO-402", "WT-01", "Ride-Height Sensitivity & Yaw Map", (now + timedelta(days=1)).strftime("%Y-%m-%d 06:00"), (now + timedelta(days=2)).strftime("%Y-%m-%d 20:00"), "Running", 4, 0.0),
-            ("TEST-DYN-805", "DYN-02", "Torque Transfer & Gearshift Transient", (now + timedelta(days=5)).strftime("%Y-%m-%d 09:00"), (now + timedelta(days=7)).strftime("%Y-%m-%d 17:00"), "Scheduled", 7, 0.0),
-            ("TEST-SHAKE-301", "RIG-02", "Kerb Impact & High-Frequency Shaker Run", (now - timedelta(days=3)).strftime("%Y-%m-%d 08:00"), (now - timedelta(days=2)).strftime("%Y-%m-%d 16:00"), "Completed", 6, 0.0),
-            ("TEST-STR-104", "STR-04", "Rear Impact Structure Torsional Rigidity", (now + timedelta(days=3)).strftime("%Y-%m-%d 10:00"), (now + timedelta(days=4)).strftime("%Y-%m-%d 14:00"), "Blocked", 2, 8.0),
+            ("TEST-PU-901", "DYN-01", "1000km Engine Durability Cycle", (now + timedelta(days=2)).strftime("%Y-%m-%d 08:00"), (now + timedelta(days=4)).strftime("%Y-%m-%d 18:00"), "Scheduled", part_map.get("W16-FL-001", default_part_id), 0.0),
+            ("TEST-AERO-402", "WT-01", "Ride-Height Sensitivity & Yaw Map", (now + timedelta(days=1)).strftime("%Y-%m-%d 06:00"), (now + timedelta(days=2)).strftime("%Y-%m-%d 20:00"), "Running", part_map.get("W16-FW-011", default_part_id), 0.0),
+            ("TEST-DYN-805", "DYN-02", "Torque Transfer & Gearshift Transient", (now + timedelta(days=5)).strftime("%Y-%m-%d 09:00"), (now + timedelta(days=7)).strftime("%Y-%m-%d 17:00"), "Scheduled", part_map.get("W16-SUSP-RR-02", default_part_id), 0.0),
+            ("TEST-SHAKE-301", "RIG-02", "Kerb Impact & High-Frequency Shaker Run", (now - timedelta(days=3)).strftime("%Y-%m-%d 08:00"), (now - timedelta(days=2)).strftime("%Y-%m-%d 16:00"), "Completed", part_map.get("W16-HALO-001", default_part_id), 0.0),
+            ("TEST-STR-104", "STR-04", "Rear Impact Structure Torsional Rigidity", (now + timedelta(days=3)).strftime("%Y-%m-%d 10:00"), (now + timedelta(days=4)).strftime("%Y-%m-%d 14:00"), "Blocked", part_map.get("W16-FL-002", default_part_id), 8.0),
         ]
         cursor.executemany("""
         INSERT INTO fact_test_runs (test_reference, facility_id, programme_type, scheduled_start, scheduled_end, actual_status, critical_part_id, idle_hours)
@@ -107,17 +116,21 @@ def seed_all(db_path=DEFAULT_DB_PATH):
         """, test_runs)
         print(f"[SEED] Inserted {len(test_runs)} test runs.")
 
+        # Map test references to auto-generated test_id for foreign keys
+        cursor.execute("SELECT test_id, test_reference FROM fact_test_runs;")
+        test_map = {row[1]: row[0] for row in cursor.fetchall()}
+
         # ----------------------------------------------------------------------
         # 4. SEED: fact_expenses
         # ----------------------------------------------------------------------
         expenses = [
             # OpEx Relevant Costs
             ("VOUCH-OP-001", 2026, "2026-01-15", "Composites_Mfg", "Toray T1000 Carbon Fibre Pre-preg Rolls", 4200000.0, 0, 0, None, None),
-            ("VOUCH-OP-002", 2026, "2026-02-10", "Test_Operations", "Wind Tunnel Rolling Road Spare Belts & Power", 1850000.0, 0, 0, None, 2),
+            ("VOUCH-OP-002", 2026, "2026-02-10", "Test_Operations", "Wind Tunnel Rolling Road Spare Belts & Power", 1850000.0, 0, 0, None, test_map.get("TEST-AERO-402")),
             ("VOUCH-OP-003", 2026, "2026-02-28", "Chassis_Engineering", "Wind Tunnel Rapid Prototyping Resins", 950000.0, 0, 0, None, None),
             ("VOUCH-OP-004", 2026, "2026-03-15", "Race_Operations", "Titanium Fasteners & High-Tensile Hardware", 680000.0, 0, 0, None, None),
-            ("VOUCH-OP-005", 2026, "2026-04-05", "Dyno_Engineering", "Dyno Rig Cell Electricity & Chiller Utilities", 1450000.0, 0, 0, None, 1),
-            ("VOUCH-OP-006", 2026, "2026-04-20", "Vehicle_Dynamics", "7-Post Shaker Load Cells & Telemetry Sensors", 320000.0, 0, 0, None, 4),
+            ("VOUCH-OP-005", 2026, "2026-04-05", "Dyno_Engineering", "Dyno Rig Cell Electricity & Chiller Utilities", 1450000.0, 0, 0, None, test_map.get("TEST-PU-901")),
+            ("VOUCH-OP-006", 2026, "2026-04-20", "Vehicle_Dynamics", "7-Post Shaker Load Cells & Telemetry Sensors", 320000.0, 0, 0, None, test_map.get("TEST-SHAKE-301")),
             ("VOUCH-OP-007", 2026, "2026-05-01", "Manufacturing", "CNC Machine Tooling & Diamond Cutters", 890000.0, 0, 0, None, None),
 
             # Statutory Excluded Expenses (Article 3.1)
