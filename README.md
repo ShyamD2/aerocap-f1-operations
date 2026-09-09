@@ -200,15 +200,4 @@ To provide recruiters with an instant live link on your resume and LinkedIn:
 3. Click **New app**, select this repository, set the main file path to `app/app.py`, and click **Deploy**.
 4. Your enterprise platform will be live at `https://aerocap-mercedes.streamlit.app` with instant global accessibility.
 
----
 
-## 🎯 Technical Interview Talking Points
-
-### *"Why did you build `AEROCAP`?"*
-> *"Under the strict £109.2M (\$138.6M) Cost Cap, Formula One championships are no longer won solely by pure aerodynamic downforce—they are won by capital efficiency. Mercedes' primary vulnerability in this ground-effect era has been correlation disconnects between static wind tunnels and dynamic on-track road proximity. When an upgrade package stalls and must be scrapped, that manufacturing budget is permanently lost. I engineered `AEROCAP` to give Programme Operations an automated gatekeeper that connects physical test telemetry with statutory cost-cap governance, ensuring composite manufacturing spend is locked until correlation is mathematically verified."*
-
-### *"How does your engine handle FIA inventory accounting under TD017?"*
-> *"Under Article 4.1(f) and Technical Directive TD017, parts are categorized as Used, Unused, or Redundant. Unused inventory is deducted from Relevant Costs until first run. When an aerodynamic package fails on track and is retired, it is reclassified as Redundant Inventory and expensed immediately in full on an item-by-item basis. If a team later re-uses a redundant component during a parts shortage, my engine executes a downward adjustment to reinstate the cost."*
-
----
-*AEROCAP // Mercedes-AMG PETRONAS Formula One Team Operations Intelligence Suite*
