@@ -154,7 +154,7 @@ Comprehensive automated test coverage across all mathematical engines, correlati
 ### 1. Installation
 Clone the repository and install the production dependencies:
 ```bash
-git clone https://github.com/<YOUR_USERNAME>/aerocap-f1-operations.git
+git clone https://github.com/ShyamD2/aerocap-f1-operations.git
 cd aerocap-f1-operations
 pip install -r requirements.txt
 ```
