@@ -9,6 +9,18 @@
 
 ---
 
+## 🎬 Interactive System Live Demonstration
+
+<div align="center">
+  <img src="proof/aerocap_demo.gif" alt="AEROCAP Real-Time Aerodynamic Simulation & Dynamic Telemetry Demonstration" width="100%" />
+  <p><em>Autoplaying Demonstration: 60 FPS aerodynamic flow physics, 6.2 Hz porpoising ground-effect stall, and automated Stage Gate 3 cost-cap spending interceptor.</em></p>
+</div>
+
+> [!TIP]
+> 📺 **Full HD 3-Minute Walkthrough**: Stream or download the complete high-resolution recording directly at [`proof/aerocap_live_demo_hd.mp4`](proof/aerocap_live_demo_hd.mp4).
+
+---
+
 ## 📌 The Problem Solved
 
 In the pre-cost cap era, Formula 1 teams spent upwards of \$450M annually to out-manufacture aerodynamic mistakes by stamping out dozens of experimental floors and chassis.
